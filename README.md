@@ -1,2 +1,2 @@
 
-![Image Hosting Demo](../zeal.png)
+![Image Hosting Demo](/zeal.png)
