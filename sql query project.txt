@@ -1,0 +1,161 @@
+SELECT * FROM company_data.employees;
+
+SET SQL_SAFE_UPDATES = 0;
+
+
+-- 🔧 Setup: Use the database
+USE company_data;
+
+-- 🧼 1. Data Cleaning: Remove leading/trailing spaces in employee names
+UPDATE Employees
+SET first_name = TRIM(first_name),
+    last_name = TRIM(last_name);
+    
+    select *
+    from employees;
+    
+
+-- 📊 2. Employee Performance Summary
+SELECT performance, COUNT(*) AS num_employees
+FROM Employees
+GROUP BY performance
+ORDER BY num_employees DESC;
+
+--  3. Top 10 Highest Paid Employees
+SELECT employee_id, first_name, last_name, department_id, salary, performance
+FROM Employees
+ORDER BY salary DESC
+LIMIT 10;
+
+-- 🔄 4. Join: Sales by Employee with Bonus & Commission
+SELECT 
+    e.employee_id,
+    CONCAT(e.first_name, ' ', e.last_name) AS full_name,
+    e.department_id,
+    SUM(s.total_amount) AS total_sales,
+    e.bonus,
+    e.commission
+FROM Sales s
+JOIN Employees e ON s.salesperson_id = e.employee_id
+GROUP BY e.employee_id, full_name, e.department_id, e.bonus, e.commission
+ORDER BY total_sales DESC;
+
+SELECT DISTINCT performance FROM Employees;
+SELECT 
+    performance,
+    TRIM(REPLACE(REPLACE(performance, CHAR(13), ''), CHAR(10), '')) AS cleaned_performance
+FROM Employees;
+
+
+--  5. CASE Statement: Classify Performance into Categories
+SELECT 
+    employee_id,
+    first_name,
+    last_name,
+    performance,
+    CASE 
+        WHEN TRIM(performance) = 'Excellent' THEN 'Outstanding'
+        WHEN TRIM(performance) = 'Average' THEN 'Meets Expectation'
+        WHEN TRIM(performance) = 'Poor' THEN 'Needs Improvement'
+        ELSE 'Unknown'
+    END AS performance_level
+FROM Employees;
+
+
+--  6. Join: Department Overview with Budget and Employees
+SELECT 
+    d.department_name,
+    d.budget,
+    COUNT(e.employee_id) AS total_employees,
+    AVG(e.salary) AS avg_salary
+FROM Departments d
+LEFT JOIN Employees e ON d.department_id = e.department_id
+GROUP BY d.department_name, d.budget
+ORDER BY avg_salary DESC;
+
+
+-- 🔍 7. CTE: Top Sales Employees with Total Revenue > $50,000
+WITH sales_summary AS (
+    SELECT 
+        salesperson_id,
+        SUM(total_amount) AS total_revenue
+    FROM Sales
+    GROUP BY salesperson_id
+)
+SELECT 
+    e.first_name,
+    e.last_name,
+    s.total_revenue
+FROM sales_summary s
+JOIN Employees e ON s.salesperson_id = e.employee_id
+WHERE s.total_revenue < 50000
+ORDER BY s.total_revenue DESC;
+
+-- 📆 8. Monthly Sales Performance
+SELECT 
+    DATE_FORMAT(sales_date, '%Y-%m') AS month,
+    SUM(total_amount) AS monthly_sales,
+    COUNT(transaction_id) AS transactions
+FROM Sales
+GROUP BY month
+ORDER BY month;
+
+-- 🧩 9. Subquery: Top Performing Department by Sales Volume
+SELECT 
+    d.department_name,
+    SUM(s.total_amount) AS dept_sales
+FROM Sales s
+JOIN Employees e ON s.salesperson_id = e.employee_id
+JOIN Departments d ON e.department_id = d.department_id
+GROUP BY d.department_name
+HAVING dept_sales = (
+    SELECT MAX(total_sales)
+    FROM (
+        SELECT 
+            SUM(s.total_amount) AS total_sales
+        FROM Sales s
+        JOIN Employees e ON s.salesperson_id = e.employee_id
+        GROUP BY e.department_id
+    ) AS sub
+);
+
+-- ✂️ 10. Filter: Employees with Low Performance and Low Salary
+SELECT 
+    employee_id,
+    first_name,
+    last_name,
+    salary,
+    performance
+FROM Employees
+WHERE performance = 'Poor' AND salary < 300
+ORDER BY salary ASC;
+
+SELECT DISTINCT performance FROM Employees;
+
+
+--  11. Email Report List: Excellent Performers
+SELECT 
+    CONCAT(first_name, ' ', last_name) AS full_name,
+    email,
+    performance,
+    LENGTH(performance) AS perf_length
+FROM Employees
+WHERE performance = 'Excellent';
+
+SELECT 
+    CONCAT(first_name, ' ', last_name) AS full_name,
+    email,
+    performance,
+    LENGTH(performance) AS perf_length
+FROM Employees
+WHERE performance = 'Excellent';
+
+SELECT 
+    performance,
+    CONCAT(first_name, ' ', last_name) AS full_name
+FROM Employees
+ORDER BY performance;
+
+-- To remove carriage returns
+UPDATE employees
+SET performance = REPLACE(performance, CHAR(13), '');
